@@ -39,7 +39,7 @@ public class HeaterTankController_HTC {
     private int p3SysInp;
     private FuzzyPetriNet net;
 
-    public HeaterTankController_HTC(Plant plant, long simPeriod) {
+    public HeaterTankController_HTC(PlantModel plantModel, long simPeriod) {
         // se construieste reteaua Petri pentru HTC component
         TableParser parser = new TableParser();
         net = new FuzzyPetriNet();
@@ -94,7 +94,7 @@ public class HeaterTankController_HTC {
         net.addActionForOuputTransition(tr2Out, new Consumer<FuzzyToken>() {
             @Override
             public void accept(FuzzyToken tk) {
-                plant.setHeaterGasCmd(tankCommandDriver.defuzzify(tk));
+                plantModel.setHeaterGasCmd(tankCommandDriver.defuzzify(tk));
             }
         });
     }

@@ -9,22 +9,25 @@ public class Main {
         //set desired scenario
         Scenario scenario = Scenario.winterDay();
         System.out.println("winter day");
-        Plant plant = new Plant(SIM_PERIOD, scenario);
-        HeaterTankController_HTC tankController = new HeaterTankController_HTC(plant, SIM_PERIOD);
-        RoomTemperatureController_RTC roomController = new RoomTemperatureController_RTC(plant, SIM_PERIOD);
+        PlantModel plantModel = new PlantModel(SIM_PERIOD, scenario);
+        HeaterTankController_HTC tankController = new HeaterTankController_HTC(plantModel, SIM_PERIOD);
+        RoomTemperatureController_RTC roomController = new RoomTemperatureController_RTC(plantModel, SIM_PERIOD);
+        AirConditionerController_ACC airConditionerController = new AirConditionerController_ACC(plantModel, SIM_PERIOD);
         //ORC orc = new ORC(tankController, SIM_PERIOD);
         //orc.start();
 
         roomController.start();
         tankController.start();
-        plant.start();
+        airConditionerController.start();
+        plantModel.start();
         double waterRefTemp = 75.0;
         double roomTemperature = 24.0;
 
         for (int i = 0; i < scenario.getScenarioLength(); i++) {
             tankController.setWaterRefTemp(waterRefTemp);
-            tankController.setTankWaterTemp(plant.getTankWaterTemperature());
-            roomController.setInput(roomTemperature, plant.getRoomTemperature());
+            tankController.setTankWaterTemp(plantModel.getTankWaterTemperature());
+            roomController.setInput(roomTemperature, plantModel.getRoomTemperature());
+            airConditionerController.setInput(roomTemperature, plantModel.getRoomTemperature());
             //orc.setOutsideTemp(scenario.getOutSideTemperature(i));
 
             try {Thread.sleep(10);
@@ -32,33 +35,43 @@ public class Main {
         }
         tankController.stop();
         roomController.stop();
+        airConditionerController.stop();
         //orc.stop();
 
         MainView windowTankController = FuzzyPVizualzer.visualize(tankController.getNet(),
                 tankController.getRecorder());
         MainView windowTermostat = FuzzyPVizualzer.visualize(roomController.getNet(), roomController.getRecorder());
+        MainView windowAirConditioner = FuzzyPVizualzer.visualize(airConditionerController.getNet(), airConditionerController.getRecorder());
         //MainView windowOrc = FuzzyPVizualzer.visualize(orc.getNet(), orc.getRecorder());
 
-        Plotter plotterTemperatureLog = new Plotter(plant.getTemperatureLogs());
-        Plotter plotterCommandLog = new Plotter(plant.getCommandLogs());
+        Plotter plotterTemperatureLog = new Plotter(plantModel.getTemperatureLogs());
+        Plotter plotterCommandLog = new Plotter(plantModel.getCommandLogs());
         windowTankController.addInteractivePanel("TempLogs", plotterTemperatureLog.makeInteractivePlot());
         windowTermostat.addInteractivePanel("TempLogs", plotterTemperatureLog.makeInteractivePlot());
+        windowAirConditioner.addInteractivePanel("TempLogs", plotterTemperatureLog.makeInteractivePlot());
         windowTankController.addInteractivePanel("ComandLogs", plotterCommandLog.makeInteractivePlot());
         windowTermostat.addInteractivePanel("ComandLogs", plotterCommandLog.makeInteractivePlot());
+        windowAirConditioner.addInteractivePanel("ComandLogs", plotterCommandLog.makeInteractivePlot());
 
-        double[] tankTempStats = Main.calcStatistics(plant.getTemperatureLogs().get("tankTemp"));
-        double[] rommTempStats = Main.calcStatistics(plant.getTemperatureLogs().get("roomTemp"));
-
+        double[] tankTempStats = Main.calcStatistics(plantModel.getTemperatureLogs().get("tankTemp"));
+        double[] roomTempStats = Main.calcStatistics(plantModel.getTemperatureLogs().get("roomTemp"));
+     //   double[] ACTempStats = Main.calcStatistics(plantModel.getTemperatureLogs().get("acAirTemp"));
         System.out.println("max tank temp :" + tankTempStats[0]);
         System.out.println("min tank temp :" + tankTempStats[1]);
         System.out.println("avg tank temp :" + tankTempStats[2]);
-        System.out.println("max room temp :" + rommTempStats[0]);
-        System.out.println("min room temp :" + rommTempStats[1]);
-        System.out.println("avg room temp :" + rommTempStats[2]);
-        System.out.println("heater on ratio:" + plant.heatingOnRatio());
-        System.out.println("max nr of minutes continuous heating on:" + plant.maxContinuousHeaterOn());
-        System.out.println("all consumption ::" + plant.gasConsumption());
-        System.out.println("avg consumption in  a min ::" + plant.gasConsumption() / scenario.getScenarioLength());
+        System.out.println("max room temp :" + roomTempStats[0]);
+        System.out.println("min room temp :" + roomTempStats[1]);
+        System.out.println("avg room temp :" + roomTempStats[2]);
+        System.out.println("heater on ratio:" + plantModel.heatingOnRatio());
+        System.out.println("max nr of minutes continuous heating on:" + plantModel.maxContinuousHeaterOn());
+        //added to update the gas consumption
+        //plant.makeLogs();
+        System.out.println("all consumption ::" + plantModel.gasConsumption());
+        System.out.println("avg consumption in  a min ::" + plantModel.gasConsumption() / scenario.getScenarioLength());
+
+     //   System.out.println("max tank temp :" + ACTempStats[0]);
+     //   System.out.println("min tank temp :" + ACTempStats[1]);
+      //  System.out.println("avg tank temp :" + ACTempStats[2]);
     }
 
     public static double[] calcStatistics(List<Double> list) {

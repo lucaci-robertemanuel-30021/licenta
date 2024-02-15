@@ -16,6 +16,7 @@ public class RoomModel {
     public void updateModel(boolean heatingOn, double heaterWaterTemp, boolean windowOpen, double outSideTemp) {
         double deltaHeater = (heatingOn) ? (heaterWaterTemp - currentTemperature) : 0.0;
         double outsideDelta = currentTemperature - outSideTemp;
+                               //c(k)     *      b
         currentTemperature += deltaHeater * heaterConstant - outsideDelta * wallConstant -
                 ((windowOpen) ? (outsideDelta * windowConstant) : 0.0);  }
 

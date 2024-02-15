@@ -1,98 +1,61 @@
-import java.util.*;
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class Plant {
-    private volatile boolean heaterOn = false;
-    private volatile double gasCmd = 0.0;
-    private int tickCntr = 0;
-    private long period;
-    private RoomModel room;
-    private Scenario scenario;
-    private HeaterTank tank;
+    //initialize socket and input stream
+    private Socket socket;
+    private ServerSocket server;
+    private DataInputStream in;
 
-    /* for logs */
-    ArrayList<Double> heaterWaterTempLog = new ArrayList<>();
-    ArrayList<Double> roomTempLog = new ArrayList<>();
-    ArrayList<Double> waterHeaterCmdLog = new ArrayList<>();
-    ArrayList<Double> heatOnCmdLog = new ArrayList<>();
-    int heatOnCntr = 0;
-    int continuousHeatOnMax = 0;
-    int continuousHeatOnCurrent = 0;
-    double tankGasCommandSum = 0.0;
+    public Plant(int port)
+    {
+        try
+        {
+            server = new ServerSocket(Constants.PORT);
+            System.out.println("Server started on port: "+Constants.PORT);
 
-    public Plant(long simPeriod, Scenario scen) {
-        this.period = simPeriod;
-        room = new RoomModel();
-        tank = new HeaterTank();
-        scenario = scen;  }
+            System.out.println("Waiting for client");
 
-    public void setHeatingOn(boolean heaterOn) {
-        this.heaterOn = heaterOn;  }
+            socket = server.accept();
+            System.out.println("Client connected");
 
-    public void setHeaterGasCmd(double cmd) {
-        gasCmd = cmd;  }
+            // take input from the client
+            in = new DataInputStream(
+                    new BufferedInputStream(socket.getInputStream()));
 
-    public double getRoomTemperature() {
-        return room.getCurrentTemperature();  }
+            String line = "";
 
-    public double heatingOnRatio() {
-        return ((double) heatOnCntr / (double) tickCntr);  }
+            // reads message from client until "Stop" is sent
+            while (!line.equals("Stop"))
+            {
+                try
+                {
+                    line = in.readUTF();
+                    System.out.println(line);
 
-    public double gasConsumption() {
-        return tankGasCommandSum;  }
-
-    public int maxContinuousHeaterOn() {
-        return continuousHeatOnMax;  }
-
-    public void start() {
-        Timer myTimer = new Timer();
-        TimerTask task = new TimerTask() {
-            //updates the information sent every set "period" until the scenario is completed
-            @Override
-            public void run() {
-                if (tickCntr < scenario.getScenarioLength()) {
-                    tank.updateSystem(heaterOn, gasCmd);
-                    room.updateModel(heaterOn, tank.getHotWaterTemperature(), scenario.getWindowOpen(tickCntr),
-                            scenario.getOutSideTemperature(tickCntr));
-                    makeLogs();
-                    tickCntr++;
                 }
-                else {
-                    myTimer.cancel();
-                    myTimer.purge();        }
+                catch(IOException i)
+                {
+                    System.out.println(i);
+                }
             }
-        };
-        myTimer.scheduleAtFixedRate(task, period, period);  }
+            System.out.println("Closing connection");
 
-    private void makeLogs() {
-        heaterWaterTempLog.add(tank.getHotWaterTemperature());
-        roomTempLog.add(room.getCurrentTemperature());
-        waterHeaterCmdLog.add(gasCmd);
-        heatOnCmdLog.add(heaterOn ? 1.0 : 0.0);
-        heatOnCntr += (heaterOn ? 1.0 : 0.0);
-        if (heaterOn) {
-            continuousHeatOnCurrent++;
+            socket.close();
+            in.close();
         }
-        else if (continuousHeatOnCurrent > 0) {
-            if (continuousHeatOnCurrent > continuousHeatOnMax) {
-                continuousHeatOnMax = continuousHeatOnCurrent;
-            }
-            continuousHeatOnCurrent = 0;
+        catch(IOException i)
+        {
+            System.out.println(i);
         }
-        tankGasCommandSum += (gasCmd < 0.0) ? 0.0 : gasCmd;
     }
-    public Double getTankWaterTemperature() {
-        return tank.getHotWaterTemperature();  }
 
-    public Map<String, List<Double>> getTemperatureLogs() {
-        HashMap<String, List<Double>> logMap = new HashMap<>();
-        logMap.put("tankTemp", heaterWaterTempLog);
-        logMap.put("roomTemp", roomTempLog);
-        return logMap;  }
+    public static void main(String args[])
+    {
 
-    public Map<String, List<Double>> getCommandLogs() {
-        HashMap<String, List<Double>> logMap = new HashMap<>();
-        logMap.put("waterCmd", waterHeaterCmdLog);
-        logMap.put("heaterOn", heatOnCmdLog);
-        return logMap;  }
-
+        Plant server = new Plant(Constants.PORT);
+    }
 }

@@ -34,7 +34,7 @@ public class RoomTemperatureController_RTC {
     private AsyncronRunnableExecutor executor;
     private int p3RealInp;
     //prin constructor primeste perioada referinta pentru plant
-    public RoomTemperatureController_RTC(Plant plant, long simPeriod) {
+    public RoomTemperatureController_RTC(PlantModel plantModel, long simPeriod) {
         net = new FuzzyPetriNet();
         TableParser parser = new TableParser();
 
@@ -73,14 +73,14 @@ public class RoomTemperatureController_RTC {
 
             @Override
             public void accept(FuzzyToken t) {
-                plant.setHeatingOn(true);
+                plantModel.setHeatingOn(true);
             }
         });
         net.addActionForOuputTransition(t5, new Consumer<FuzzyToken>() {
 
             @Override
             public void accept(FuzzyToken t) {
-                plant.setHeatingOn(false);
+                plantModel.setHeatingOn(false);
             }
         });
 
